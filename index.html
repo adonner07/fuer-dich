@@ -165,7 +165,19 @@
   }
   .chips { display: grid; gap: .5rem; }
   .chips-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .chips-times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .time-pick { display: flex; justify-content: center; }
+  .time-pick select {
+    width: min(260px, 100%); appearance: none; -webkit-appearance: none; cursor: pointer;
+    font: 700 1rem var(--font-ui); color: var(--ink); text-align: center; text-align-last: center;
+    background-color: var(--ground);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23a10f2b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 1rem center; background-size: 12px 8px;
+    border: 1.5px solid transparent; border-radius: 14px; padding: .8rem 2.5rem;
+    transition: border-color .15s ease, background-color .15s ease;
+  }
+  .time-pick select:hover { border-color: var(--rose); }
+  .time-pick select:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .time-pick.active select { border-color: var(--rose); background-color: var(--petal); }
   .chip { position: relative; display: block; }
   .chip input {
     position: absolute; inset: 0; width: 100%; height: 100%;
@@ -306,10 +318,10 @@
       </fieldset>
       <fieldset>
         <legend>Um welche Uhrzeit?</legend>
-        <div class="chips chips-times">
-          <label class="chip"><input type="radio" name="time" id="time-mittag" value="mittag"><span class="chip-face"><b>Mittag</b><small>12 Uhr</small></span></label>
-          <label class="chip"><input type="radio" name="time" id="time-nachmittag" value="nachmittag"><span class="chip-face"><b>Nachmittag</b><small>15 Uhr</small></span></label>
-          <label class="chip"><input type="radio" name="time" id="time-abend" value="abend"><span class="chip-face"><b>Abend</b><small>19 Uhr</small></span></label>
+        <div class="time-pick" id="timeWrap">
+          <select id="timeSelect" name="time" aria-label="Uhrzeit">
+            <option value="">Uhrzeit wählen</option>
+          </select>
         </div>
       </fieldset>
       <div class="form-foot">
@@ -347,11 +359,8 @@
   const T = reduce
     ? { leave: 50, pop: 50, close: 50, draw: 50, fill: 300 }
     : { leave: 400, pop: 800, close: 600, draw: 1600, fill: 700 };
-  const TIMES = {
-    mittag: 'mittags um 12 Uhr',
-    nachmittag: 'nachmittags um 15 Uhr',
-    abend: 'abends um 19 Uhr',
-  };
+  // Uhrzeiten im Dropdown: 10:00 bis 23:00 im Halbstundentakt
+  const FIRST_HOUR = 10, LAST_HOUR = 23;
 
   const $ = id => document.getElementById(id);
   const start = $('start'), msg = $('msg'), card = $('card'), heart = $('heart');
@@ -530,6 +539,15 @@
   const confirmBtn = $('confirmBtn'), formHint = $('formHint');
   otherDay.min = todayIso;
 
+  const timeSelect = $('timeSelect'), timeWrap = $('timeWrap');
+  for (let h = FIRST_HOUR; h <= LAST_HOUR; h++) {
+    for (const m of [0, 30]) {
+      if (h === LAST_HOUR && m) break;
+      const t = `${pad(h)}:${pad(m)}`;
+      timeSelect.add(new Option(`${t} Uhr`, t));
+    }
+  }
+
   const dayChips = $('dayChips');
   for (let i = 0; i < 8; i++) {
     const d = new Date(today);
@@ -548,11 +566,12 @@
     if (r) return r.value;
     return otherDay.value && otherDay.value >= todayIso ? otherDay.value : '';
   }
-  const chosenTime = () => form.querySelector('input[name="time"]:checked')?.value || '';
+  const chosenTime = () => timeSelect.value;
 
   function updateForm() {
     const day = chosenDay(), time = chosenTime();
     otherWrap.classList.toggle('active', !!otherDay.value);
+    timeWrap.classList.toggle('active', !!timeSelect.value);
     confirmBtn.disabled = !(day && time);
     if (otherDay.value && otherDay.value < todayIso) formHint.textContent = 'Bitte einen Tag ab heute wählen.';
     else if (!day && !time) formHint.textContent = 'Wähl einen Tag und eine Uhrzeit.';
@@ -569,7 +588,7 @@
 
   function fillDone(day, time) {
     const dayText = longDate.format(parseIso(day));
-    const timeText = TIMES[time];
+    const timeText = `um ${time} Uhr`;
     $('whenDay').textContent = dayText;
     $('whenTime').textContent = timeText;
     const text = `Wann ist unser nächstes Date? ${dayText}, ${timeText} ❤️ Ich freu mich auf dich!`;
@@ -605,10 +624,10 @@
   // Letzte Wahl auf diesem Gerät wieder vorauswählen
   try {
     const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
-    if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved.day) && saved.day >= todayIso && TIMES[saved.time]) {
+    if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved.day) && saved.day >= todayIso && /^\d{2}:\d{2}$/.test(saved.time)) {
       const r = form.querySelector(`input[name="day"][value="${saved.day}"]`);
       if (r) r.checked = true; else otherDay.value = saved.day;
-      $('time-' + saved.time).checked = true;
+      timeSelect.value = saved.time;
     }
   } catch {}
   updateForm();
