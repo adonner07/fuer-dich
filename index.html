@@ -1,0 +1,627 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>
+  :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+  body { margin: 0; }
+  [hidden] { display: none !important; }
+</style>
+<title>Ich liebe dich</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Quicksand:wght@500;700&display=swap">
+<style>
+  /* Layout: one centered stage; scenes (Start → Nachricht → Herz → Date → Abgemacht) take turns in the same spot */
+  :root {
+    --ground: #fbe5ea;
+    --ground-deep: #f3c3ce;
+    --ink: #5b1025;
+    --ink-soft: #8d4a5d;
+    --rose: #e0233f;
+    --rose-deep: #a10f2b;
+    --petal: #fffafb;
+    --shadow: rgba(91, 16, 37, 0.38);
+    --hairline: rgba(161, 15, 43, 0.08);
+    --font-script: "Great Vibes", "Snell Roundhand", "Apple Chancery", "Brush Script MT", cursive;
+    --font-ui: "Quicksand", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+    color-scheme: light;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background-color: var(--ground);
+    background-image: radial-gradient(120% 85% at 50% 38%, var(--ground) 0%, var(--ground) 35%, var(--ground-deep) 100%);
+    background-attachment: fixed;
+    color: var(--ink);
+    font-family: var(--font-ui);
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    overflow-x: hidden;
+  }
+
+  .float-layer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+
+  .stage {
+    position: relative; z-index: 1; min-height: 100%;
+    display: grid; place-items: center; padding-block: 24px;
+  }
+  .scene {
+    grid-area: 1 / 1;
+    display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+    text-align: center; max-width: 100%;
+    transition: opacity .4s ease, transform .4s ease;
+  }
+  .scene.leaving { opacity: 0; transform: scale(.96); }
+  .scene.entering { animation: scene-in .5s ease both; }
+
+  /* Start */
+  .eyebrow {
+    margin: 0; font-size: .8rem; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .start-title {
+    margin: 0; font-family: var(--font-script); font-weight: 400;
+    font-size: clamp(4rem, 18vw, 7.5rem); line-height: 1; color: var(--rose-deep);
+    text-wrap: balance;
+  }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: .6rem;
+    max-width: 100%; text-align: center; text-decoration: none;
+    font: 700 1.15rem/1.1 var(--font-ui); letter-spacing: .02em;
+    border: 0; border-radius: 999px; padding: 1rem 2.4rem; cursor: pointer;
+    color: var(--petal); background: var(--rose);
+    box-shadow: 0 14px 28px -12px var(--shadow);
+    transition: transform .15s ease, background-color .15s ease, color .15s ease, opacity .15s ease;
+  }
+  .btn:not(:disabled):hover { transform: translateY(-2px); background: var(--rose-deep); }
+  .btn:not(:disabled):active { transform: scale(.98); }
+  .btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+  .btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
+  .btn svg { width: 1em; height: 1em; fill: currentColor; }
+  .btn-ghost {
+    background: transparent; color: var(--rose-deep);
+    box-shadow: inset 0 0 0 2px var(--rose-deep);
+    padding: .85rem 2rem; font-size: 1rem;
+  }
+  .btn-ghost:not(:disabled):hover { background: var(--rose-deep); color: var(--petal); }
+
+  .actions { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: .75rem; }
+
+  /* Papier: Nachricht, Date-Auswahl, Bestätigung */
+  .paper {
+    background: var(--petal); border-radius: 28px;
+    box-shadow: 0 34px 60px -28px var(--shadow), 0 0 0 1px var(--hairline);
+  }
+
+  /* Nachricht */
+  .card {
+    display: flex; flex-direction: column; align-items: center; gap: 1rem;
+    max-width: 100%; cursor: pointer;
+    padding: clamp(1.75rem, 6vw, 3rem) clamp(1.5rem, 8vw, 4.5rem) clamp(1.25rem, 4vw, 2rem);
+  }
+  .card:focus { outline: none; }
+  .card:focus-visible { outline: 3px solid var(--ink); outline-offset: 4px; }
+  .card.opening { animation: pop-in .8s cubic-bezier(.18, 1.35, .4, 1) both; }
+  .card.closing { animation: pop-out .6s cubic-bezier(.5, 0, .75, 0) forwards; }
+  .love {
+    margin: 0; font-family: var(--font-script); font-weight: 400;
+    font-size: clamp(3.2rem, 14vw, 6.5rem); line-height: 1.15; color: var(--rose-deep);
+    text-wrap: balance;
+  }
+  .timer {
+    display: block; width: min(220px, 60%); height: 3px; border-radius: 3px;
+    background: var(--ground-deep); overflow: hidden;
+  }
+  .timer i { display: block; height: 100%; background: var(--rose); transform-origin: left center; }
+  .card.opening .timer i { animation: drain var(--hold, 2800ms) linear .8s forwards; }
+  .hint { font-size: .8rem; letter-spacing: .04em; color: var(--ink-soft); }
+
+  /* Herz */
+  .big-heart {
+    display: block; width: min(68vw, 340px, 52vh); height: auto; overflow: visible;
+    transition: filter .7s ease;
+  }
+  #heartPath {
+    fill: var(--rose); fill-opacity: 0;
+    stroke: var(--rose-deep); stroke-width: .6; stroke-linejoin: round; stroke-linecap: round;
+    transition: fill-opacity .7s ease;
+  }
+  .scene-heart.filled #heartPath { fill-opacity: 1; }
+  .scene-heart.filled .big-heart { filter: drop-shadow(0 16px 28px var(--shadow)); }
+  .scene-heart.beating .big-heart { animation: beat 1.3s ease-in-out infinite; }
+  .caption {
+    margin: 0; font-family: var(--font-script);
+    font-size: clamp(2rem, 8vw, 2.75rem); line-height: 1.1; color: var(--ink);
+  }
+  .scene-heart .after {
+    opacity: 0; visibility: hidden; transform: translateY(8px);
+    transition: opacity .6s ease, transform .6s ease, visibility 0s linear .6s;
+  }
+  .scene-heart.done .after {
+    opacity: 1; visibility: visible; transform: none;
+    transition: opacity .6s ease, transform .6s ease, visibility 0s;
+  }
+
+  /* Date-Auswahl */
+  .sheet {
+    width: min(440px, 100%);
+    display: flex; flex-direction: column; align-items: stretch; gap: 1.5rem;
+    padding: clamp(1.5rem, 5vw, 2.25rem) clamp(1.1rem, 5vw, 2.25rem);
+  }
+  .sheet-title {
+    margin: 0; font-family: var(--font-script); font-weight: 400;
+    font-size: clamp(2.6rem, 11vw, 3.4rem); line-height: 1.05; color: var(--rose-deep);
+    text-align: center; text-wrap: balance;
+  }
+  .sheet-title:focus { outline: none; }
+  fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: flex; flex-direction: column; gap: .75rem; }
+  legend {
+    padding: 0; margin-bottom: .75rem; width: 100%; text-align: center;
+    font-size: .75rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-soft);
+  }
+  .chips { display: grid; gap: .5rem; }
+  .chips-days { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .chips-times { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .chip { position: relative; display: block; }
+  .chip input {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    margin: 0; opacity: 0; cursor: pointer;
+  }
+  .chip-face {
+    display: flex; flex-direction: column; align-items: center; gap: .1rem;
+    padding: .6rem .25rem; border-radius: 14px;
+    background: var(--ground); color: var(--ink); border: 1.5px solid transparent;
+    transition: background-color .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .chip-face b { font-weight: 700; font-size: .95rem; }
+  .chip-face small { font-size: .78rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+  .chip:hover .chip-face { border-color: var(--rose); }
+  .chip input:checked + .chip-face { background: var(--rose); color: var(--petal); border-color: var(--rose); }
+  .chip input:checked + .chip-face small { color: var(--petal); }
+  .chip input:focus-visible + .chip-face { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .other {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: .5rem .75rem;
+    font-size: .9rem; color: var(--ink-soft);
+  }
+  .other input {
+    min-width: 0; font: 500 .95rem var(--font-ui); color: var(--ink);
+    background: var(--ground); border: 1.5px solid transparent; border-radius: 12px; padding: .5rem .75rem;
+  }
+  .other input:hover { border-color: var(--rose); }
+  .other input:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+  .other.active input { border-color: var(--rose); background: var(--petal); }
+  .form-foot { display: flex; flex-direction: column; align-items: center; gap: .6rem; }
+  .form-hint { margin: 0; min-height: 1.3em; font-size: .85rem; color: var(--ink-soft); text-align: center; }
+
+  /* Abgemacht */
+  .sheet-done { align-items: center; text-align: center; gap: 1.1rem; }
+  .when { display: flex; flex-direction: column; gap: .25rem; }
+  .when-day {
+    margin: 0; font-size: clamp(1.4rem, 6vw, 1.75rem); font-weight: 700; color: var(--ink);
+    text-wrap: balance;
+  }
+  .when-time { margin: 0; font-size: 1.05rem; color: var(--ink-soft); }
+  .note { margin: .25rem 0 0; font-size: .95rem; color: var(--ink); max-width: 32ch; }
+  .msg-preview {
+    margin: 0; padding: .75rem 1rem; max-width: 100%; border-radius: 14px;
+    background: var(--ground); font-size: .9rem; color: var(--ink); overflow-wrap: anywhere;
+  }
+  .copy-msg { margin: 0; font-size: .85rem; color: var(--ink-soft); }
+  .copy-msg:empty { display: none; }
+  .link-btn {
+    font: 700 .9rem var(--font-ui); color: var(--rose-deep);
+    background: none; border: 0; padding: .4rem .6rem; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 3px;
+  }
+  .link-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; border-radius: 6px; }
+
+  /* Kleine Herzen */
+  .mini { position: absolute; display: block; fill: var(--rose); }
+  .mini.rise { bottom: -40px; animation: rise var(--dur) linear forwards; }
+  .mini.burst { animation: burst var(--dur) cubic-bezier(.15, .7, .3, 1) forwards; }
+
+  @keyframes scene-in { from { opacity: 0; transform: translateY(14px) scale(.98); } }
+  @keyframes pop-in {
+    0% { opacity: 0; transform: scale(.25) rotate(-8deg); }
+    55% { opacity: 1; transform: scale(1.07) rotate(1.5deg); }
+    100% { opacity: 1; transform: none; }
+  }
+  @keyframes pop-out {
+    0% { opacity: 1; transform: none; }
+    100% { opacity: 0; transform: scale(.15); filter: blur(6px); }
+  }
+  @keyframes drain { to { transform: scaleX(0); } }
+  @keyframes beat {
+    0%, 60%, 100% { transform: scale(1); }
+    15% { transform: scale(1.09); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.06); }
+  }
+  @keyframes rise {
+    0% { opacity: 0; transform: translate(0, 0) rotate(var(--r0)); }
+    10% { opacity: var(--o); }
+    85% { opacity: var(--o); }
+    100% { opacity: 0; transform: translate(var(--drift), calc(-100vh - 80px)) rotate(var(--r1)); }
+  }
+  @keyframes burst {
+    from { opacity: 1; transform: translate(-50%, -50%) scale(.3); }
+    to { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1) rotate(var(--r1)); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .card.opening, .card.closing { animation-duration: .01ms; }
+    .card.opening .timer i { animation-delay: 0s; }
+    .scene-heart.beating .big-heart { animation: none; }
+    .scene { transition: none; }
+    .scene.entering { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="float-layer" id="floatLayer" aria-hidden="true"></div>
+
+<main class="stage">
+  <section class="scene scene-start" id="start">
+    <p class="eyebrow">Eine kleine Nachricht</p>
+    <h1 class="start-title">Für dich</h1>
+    <button class="btn" id="startBtn" type="button">
+      <svg viewBox="-18 -14 36 33" aria-hidden="true"><path class="heart-shape"></path></svg>
+      Starten
+    </button>
+  </section>
+
+  <section class="scene scene-msg" id="msg" aria-live="polite" hidden>
+    <div class="card paper" id="card" tabindex="-1">
+      <p class="love">Ich liebe dich</p>
+      <span class="timer" aria-hidden="true"><i></i></span>
+      <span class="hint">Tippen zum Schließen</span>
+    </div>
+  </section>
+
+  <section class="scene scene-heart" id="heart" hidden>
+    <svg class="big-heart" id="bigHeart" viewBox="-18 -14 36 33" role="img" aria-label="Ein rotes Herz">
+      <path id="heartPath"></path>
+    </svg>
+    <p class="caption after">Du hast mein Herz.</p>
+    <div class="actions after">
+      <button class="btn" id="dateBtn" type="button">Wann sehen wir uns?</button>
+      <button class="btn btn-ghost" id="againBtn" type="button">Nochmal</button>
+    </div>
+  </section>
+
+  <section class="scene scene-date" id="date" hidden>
+    <form class="paper sheet" id="dateForm" novalidate>
+      <h2 class="sheet-title" id="dateTitle" tabindex="-1">Unser nächstes Date</h2>
+      <fieldset>
+        <legend>Welcher Tag?</legend>
+        <div class="chips chips-days" id="dayChips"></div>
+        <label class="other" id="otherWrap" for="otherDay">Anderer Tag:
+          <input type="date" id="otherDay" name="otherDay">
+        </label>
+      </fieldset>
+      <fieldset>
+        <legend>Um welche Uhrzeit?</legend>
+        <div class="chips chips-times">
+          <label class="chip"><input type="radio" name="time" id="time-mittag" value="mittag"><span class="chip-face"><b>Mittag</b><small>12 Uhr</small></span></label>
+          <label class="chip"><input type="radio" name="time" id="time-nachmittag" value="nachmittag"><span class="chip-face"><b>Nachmittag</b><small>15 Uhr</small></span></label>
+          <label class="chip"><input type="radio" name="time" id="time-abend" value="abend"><span class="chip-face"><b>Abend</b><small>19 Uhr</small></span></label>
+        </div>
+      </fieldset>
+      <div class="form-foot">
+        <button class="btn" id="confirmBtn" type="submit" disabled>Date festmachen</button>
+        <p class="form-hint" id="formHint" aria-live="polite"></p>
+      </div>
+    </form>
+  </section>
+
+  <section class="scene scene-done" id="done" hidden>
+    <div class="paper sheet sheet-done">
+      <h2 class="sheet-title" id="doneTitle" tabindex="-1">Abgemacht!</h2>
+      <div class="when">
+        <p class="when-day" id="whenDay"></p>
+        <p class="when-time" id="whenTime"></p>
+      </div>
+      <p class="note">Schick mir deine Wahl, damit ich Bescheid weiß:</p>
+      <p class="msg-preview" id="msgPreview"></p>
+      <div class="actions">
+        <a class="btn" id="waLink" href="https://wa.me/" target="_blank" rel="noopener">Per WhatsApp schicken</a>
+        <button class="btn btn-ghost" id="copyBtn" type="button">Text kopieren</button>
+      </div>
+      <p class="copy-msg" id="copyMsg" aria-live="polite"></p>
+      <button class="link-btn" id="changeBtn" type="button">Datum ändern</button>
+    </div>
+  </section>
+</main>
+
+<script>
+  const NS = 'http://www.w3.org/2000/svg';
+  const VIEWBOX = '-18 -14 36 33';
+  const HOLD = 2800; // so lange bleibt "Ich liebe dich" stehen (ms)
+  const STORE_KEY = 'naechstes-date';
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const T = reduce
+    ? { leave: 50, pop: 50, close: 50, draw: 50, fill: 300 }
+    : { leave: 400, pop: 800, close: 600, draw: 1600, fill: 700 };
+  const TIMES = {
+    mittag: 'mittags um 12 Uhr',
+    nachmittag: 'nachmittags um 15 Uhr',
+    abend: 'abends um 19 Uhr',
+  };
+
+  const $ = id => document.getElementById(id);
+  const start = $('start'), msg = $('msg'), card = $('card'), heart = $('heart');
+  const dateScene = $('date'), doneScene = $('done');
+  const path = $('heartPath'), layer = $('floatLayer');
+
+  // Klassische Herzkurve: x = 16 sin³t, y = 13 cos t − 5 cos 2t − 2 cos 3t − cos 4t
+  function heartPathData(steps = 160) {
+    let d = '';
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * Math.PI * 2;
+      const x = 16 * Math.sin(t) ** 3;
+      const y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+      d += (i ? 'L' : 'M') + x.toFixed(2) + ' ' + y.toFixed(2);
+    }
+    return d + 'Z';
+  }
+  const D = heartPathData();
+  path.setAttribute('d', D);
+  document.querySelectorAll('.heart-shape').forEach(p => p.setAttribute('d', D));
+
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+
+  function waitOrDismiss(ms) {
+    return new Promise(resolve => {
+      const finish = () => {
+        clearTimeout(timer);
+        document.removeEventListener('click', finish);
+        document.removeEventListener('keydown', onKey);
+        resolve();
+      };
+      const onKey = e => {
+        if (['Enter', ' ', 'Escape'].includes(e.key)) { e.preventDefault(); finish(); }
+      };
+      const timer = setTimeout(finish, ms);
+      document.addEventListener('click', finish);
+      document.addEventListener('keydown', onKey);
+    });
+  }
+
+  function mini(kind) {
+    const s = document.createElementNS(NS, 'svg');
+    s.setAttribute('viewBox', VIEWBOX);
+    s.setAttribute('class', 'mini ' + kind);
+    const p = document.createElementNS(NS, 'path');
+    p.setAttribute('d', D);
+    s.appendChild(p);
+    s.addEventListener('animationend', () => s.remove());
+    return s;
+  }
+
+  function rise() {
+    if (document.hidden || layer.childElementCount > 26) return;
+    const s = mini('rise');
+    const size = 10 + Math.random() * 18;
+    s.style.width = s.style.height = size + 'px';
+    s.style.left = (Math.random() * 96).toFixed(1) + '%';
+    s.style.setProperty('--dur', (8 + Math.random() * 6).toFixed(1) + 's');
+    s.style.setProperty('--o', (0.18 + Math.random() * 0.35).toFixed(2));
+    s.style.setProperty('--drift', Math.round(Math.random() * 120 - 60) + 'px');
+    s.style.setProperty('--r0', Math.round(Math.random() * 40 - 20) + 'deg');
+    s.style.setProperty('--r1', Math.round(Math.random() * 80 - 40) + 'deg');
+    layer.appendChild(s);
+  }
+
+  function burst() {
+    if (reduce) return;
+    const r = $('bigHeart').getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const count = 16;
+    for (let i = 0; i < count; i++) {
+      const a = (i / count) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = r.width * (0.55 + Math.random() * 0.45);
+      const size = 10 + Math.random() * 16;
+      const s = mini('burst');
+      Object.assign(s.style, { left: cx + 'px', top: cy + 'px', width: size + 'px', height: size + 'px' });
+      s.style.setProperty('--dx', Math.round(Math.cos(a) * dist) + 'px');
+      s.style.setProperty('--dy', Math.round(Math.sin(a) * dist) + 'px');
+      s.style.setProperty('--r1', Math.round(Math.random() * 80 - 40) + 'deg');
+      s.style.setProperty('--dur', Math.round(900 + Math.random() * 700) + 'ms');
+      layer.appendChild(s);
+    }
+  }
+
+  function resetHeart() {
+    heart.hidden = true;
+    heart.classList.remove('leaving', 'entering', 'filled', 'beating', 'done');
+    path.getAnimations().forEach(a => a.cancel());
+  }
+
+  async function showHeart() {
+    heart.hidden = false;
+    const len = path.getTotalLength();
+    path.style.strokeDasharray = len;
+    path.style.strokeDashoffset = len;
+    path.animate(
+      [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+      { duration: T.draw, easing: 'ease-in-out', fill: 'forwards' }
+    );
+    await wait(T.draw);
+    heart.classList.add('filled');
+    burst();
+    await wait(T.fill);
+    heart.classList.add('beating', 'done');
+  }
+
+  let busy = false;
+
+  async function play() {
+    if (busy) return;
+    busy = true;
+
+    if (!start.hidden) {
+      start.classList.add('leaving');
+      await wait(T.leave);
+      start.hidden = true;
+      start.classList.remove('leaving');
+    }
+    if (!heart.hidden) {
+      heart.classList.add('leaving');
+      await wait(T.leave);
+      resetHeart();
+    }
+
+    // "Ich liebe dich" poppt auf
+    card.classList.remove('opening', 'closing');
+    card.style.setProperty('--hold', HOLD + 'ms');
+    msg.hidden = false;
+    void card.offsetWidth;
+    card.classList.add('opening');
+    card.focus({ preventScroll: true });
+    await wait(T.pop);
+    await waitOrDismiss(HOLD);
+
+    // ... und verschwindet wieder
+    card.classList.add('closing');
+    await wait(T.close);
+    msg.hidden = true;
+    card.classList.remove('opening', 'closing');
+
+    // dann kommt das Herz
+    await showHeart();
+    busy = false;
+  }
+
+  // Wechsel zwischen zwei Szenen mit Ein- und Ausblenden
+  async function go(from, to, focusEl) {
+    if (busy) return;
+    busy = true;
+    from.classList.remove('entering');
+    from.classList.add('leaving');
+    await wait(T.leave);
+    if (from === heart) resetHeart(); else from.hidden = true;
+    from.classList.remove('leaving');
+    to.hidden = false;
+    to.classList.remove('entering');
+    void to.offsetWidth;
+    to.classList.add('entering');
+    window.scrollTo(0, 0);
+    focusEl?.focus({ preventScroll: true });
+    busy = false;
+  }
+
+  // ---- Date-Auswahl ----
+  const pad = n => String(n).padStart(2, '0');
+  const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parseIso = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+  const longDate = new Intl.DateTimeFormat('de-DE', { weekday: 'long', day: 'numeric', month: 'long' });
+  const shortDay = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayIso = isoDate(today);
+
+  const form = $('dateForm'), otherDay = $('otherDay'), otherWrap = $('otherWrap');
+  const confirmBtn = $('confirmBtn'), formHint = $('formHint');
+  otherDay.min = todayIso;
+
+  const dayChips = $('dayChips');
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const name = i === 0 ? 'Heute' : i === 1 ? 'Morgen' : shortDay.format(d).replace('.', '');
+    const label = document.createElement('label');
+    label.className = 'chip';
+    label.innerHTML =
+      `<input type="radio" name="day" id="day-${i}" value="${isoDate(d)}">` +
+      `<span class="chip-face"><b>${name}</b><small>${pad(d.getDate())}.${pad(d.getMonth() + 1)}.</small></span>`;
+    dayChips.appendChild(label);
+  }
+
+  function chosenDay() {
+    const r = form.querySelector('input[name="day"]:checked');
+    if (r) return r.value;
+    return otherDay.value && otherDay.value >= todayIso ? otherDay.value : '';
+  }
+  const chosenTime = () => form.querySelector('input[name="time"]:checked')?.value || '';
+
+  function updateForm() {
+    const day = chosenDay(), time = chosenTime();
+    otherWrap.classList.toggle('active', !!otherDay.value);
+    confirmBtn.disabled = !(day && time);
+    if (otherDay.value && otherDay.value < todayIso) formHint.textContent = 'Bitte einen Tag ab heute wählen.';
+    else if (!day && !time) formHint.textContent = 'Wähl einen Tag und eine Uhrzeit.';
+    else if (!day) formHint.textContent = 'Jetzt noch den Tag wählen.';
+    else if (!time) formHint.textContent = 'Jetzt noch die Uhrzeit wählen.';
+    else formHint.textContent = '';
+  }
+
+  form.addEventListener('change', e => {
+    if (e.target.name === 'day') otherDay.value = '';
+    if (e.target === otherDay) form.querySelectorAll('input[name="day"]').forEach(r => { r.checked = false; });
+    updateForm();
+  });
+
+  function fillDone(day, time) {
+    const dayText = longDate.format(parseIso(day));
+    const timeText = TIMES[time];
+    $('whenDay').textContent = dayText;
+    $('whenTime').textContent = timeText;
+    const text = `Wann ist unser nächstes Date? ${dayText}, ${timeText} ❤️ Ich freu mich auf dich!`;
+    $('msgPreview').textContent = text;
+    $('waLink').href = 'https://wa.me/?text=' + encodeURIComponent(text);
+    $('copyMsg').textContent = '';
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const day = chosenDay(), time = chosenTime();
+    if (!day || !time) return;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify({ day, time })); } catch {}
+    fillDone(day, time);
+    go(dateScene, doneScene, $('doneTitle'));
+  });
+
+  $('copyBtn').addEventListener('click', async () => {
+    const preview = $('msgPreview');
+    try {
+      await navigator.clipboard.writeText(preview.textContent);
+      $('copyMsg').textContent = 'Kopiert! Jetzt einfach in den Chat einfügen.';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(preview);
+      const sel = getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      $('copyMsg').textContent = 'Der Text ist markiert. Jetzt kopieren und in den Chat einfügen.';
+    }
+  });
+
+  // Letzte Wahl auf diesem Gerät wieder vorauswählen
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE_KEY) || 'null');
+    if (saved && /^\d{4}-\d{2}-\d{2}$/.test(saved.day) && saved.day >= todayIso && TIMES[saved.time]) {
+      const r = form.querySelector(`input[name="day"][value="${saved.day}"]`);
+      if (r) r.checked = true; else otherDay.value = saved.day;
+      $('time-' + saved.time).checked = true;
+    }
+  } catch {}
+  updateForm();
+
+  $('startBtn').addEventListener('click', play);
+  $('againBtn').addEventListener('click', play);
+  $('dateBtn').addEventListener('click', () => go(heart, dateScene, $('dateTitle')));
+  $('changeBtn').addEventListener('click', () => go(doneScene, dateScene, $('dateTitle')));
+
+  if (!reduce) {
+    for (let i = 0; i < 6; i++) setTimeout(rise, i * 500);
+    setInterval(rise, 900);
+  }
+</script>
+</body>
+</html>
